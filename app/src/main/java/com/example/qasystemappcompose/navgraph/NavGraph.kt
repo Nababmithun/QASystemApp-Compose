@@ -11,14 +11,14 @@ fun NavGraph(vm: MainViewModel, onSubmitDone: () -> Unit) {
     val nav = rememberNavController()
     NavHost(nav, startDestination = "survey") {
         composable("survey") {
-            MainScreen(viewModel = vm) {
+            MainScreen(viewModel = vm, onCompleted = {
                 nav.navigate("results")
-            }
+            })
         }
         composable("results") {
             ResultsScreen(viewModel = vm, onBack = {
                 nav.popBackStack("survey", inclusive = true)
-                vm.fetchAll()
+                vm.restartSurvey()  // ✅ পুরোনো উত্তর মুছে নতুন করে শুরু
             })
         }
     }

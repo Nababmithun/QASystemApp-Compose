@@ -79,4 +79,10 @@ dependencies {
     implementation (libs.androidx.room.runtime)
     kapt (libs.androidx.room.compiler)
     implementation (libs.androidx.room.ktx)
+
+    implementation(libs.androidx.material.v140)
+    // Material2
+    implementation(libs.material3)
+   // Material3
+    implementation(libs.androidx.material3.v110)
 }

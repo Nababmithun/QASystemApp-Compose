@@ -3,22 +3,24 @@ package com.example.qasystemappcompose
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.material.MaterialTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.qasystemappcompose.database.AppDatabase
 import com.example.qasystemappcompose.navgraph.NavGraph
+import com.example.qasystemappcompose.screen.MainScreen
 import com.example.qasystemappcompose.viewmodel.MainViewModel
 import com.example.qasystemappcompose.viewmodel.MainViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val database = AppDatabase.getInstance(this)
-        val factory = MainViewModelFactory(database)
+        val db = AppDatabase.getInstance(this)
+        val viewModel = MainViewModel(db)
 
         setContent {
-            val viewModel: MainViewModel = viewModel(factory = factory)
-            NavGraph(viewModel) { /* onSubmitDone */ }
+            MaterialTheme {
+                NavGraph(vm = viewModel, onSubmitDone = {}) // ✅ Navigation ইউজ করো
+            }
         }
     }
 }

@@ -6,9 +6,13 @@ import androidx.room.Query
 
 @Dao
 interface AnswerDao {
+
     @Insert
     suspend fun insert(answer: QuestionAnswer)
 
-    @Query("SELECT * FROM question_answer")
+    @Query("SELECT * FROM answers")
     suspend fun getAll(): List<QuestionAnswer>
+
+    @Query("DELETE FROM answers")
+    suspend fun clear()
 }
