@@ -31,6 +31,7 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Show options if available
                 question.options?.forEach { option ->
                     Row(
                         modifier = Modifier
@@ -48,10 +49,7 @@ fun MainScreen(
                     ) {
                         RadioButton(
                             selected = selectedOption == option.value,
-                            onClick = { selectedOption = option.value },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = MaterialTheme.colorScheme.primary
-                            )
+                            onClick = { selectedOption = option.value }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = option.value)
@@ -64,28 +62,44 @@ fun MainScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Button(
-                        onClick = { viewModel.skip() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Skip")
+                    // ✅ Show Skip button only if skip.id != "-1"
+                    if (question.skip?.id != "-1") {
+                        Button(
+                            onClick = { viewModel.skip() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Skip")
+                        }
                     }
 
-                    Button(
-                        onClick = {
-                            selectedOption?.let {
-                                viewModel.answered(it)
-                            }
-                        },
-                        enabled = selectedOption != null,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Next")
+                    // ✅ If referTo is 'submit', show Submit button
+                    if (question.referTo?.id == "submit") {
+                        Button(
+                            onClick = {
+                                selectedOption?.let { viewModel.answered(it) }
+                            },
+                            enabled = selectedOption != null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Submit")
+                        }
+                    } else {
+                        // ✅ Show Next button for other question types
+                        Button(
+                            onClick = {
+                                selectedOption?.let { viewModel.answered(it) }
+                            },
+                            enabled = selectedOption != null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Next")
+                        }
                     }
                 }
             }
         }
     } ?: run {
+        // No more questions: navigate to results
         LaunchedEffect(Unit) {
             onCompleted()
         }

@@ -15,7 +15,6 @@ fun ResultsScreen(
     viewModel: MainViewModel,
     onRestart: () -> Unit
 ) {
-    // Room to Answers load UI show
     var answers by remember { mutableStateOf<List<QuestionAnswer>>(emptyList()) }
 
     LaunchedEffect(Unit) {
@@ -28,7 +27,7 @@ fun ResultsScreen(
             .padding(16.dp)
     ) {
         Text(
-            text = "Submitted Answers",
+            text = "📝 Submitted Answers",
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -38,16 +37,24 @@ fun ResultsScreen(
             modifier = Modifier.weight(1f)
         ) {
             items(answers) { qa ->
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(
-                        text = viewModel.getQuestionTextById(qa.questionId),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = "Answer: ${qa.answer}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Divider(modifier = Modifier.padding(vertical = 6.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = viewModel.getQuestionTextById(qa.questionId),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Answer: ${qa.answer}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -56,13 +63,14 @@ fun ResultsScreen(
 
         Button(
             onClick = {
-                // Restart btn survey start
                 viewModel.restartSurvey()
                 onRestart()
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
         ) {
-            Text("🔁 Restart Survey")
+            Text("🔁 Restart Survey", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

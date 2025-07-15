@@ -9,6 +9,7 @@ import com.example.qasystemappcompose.model.QuestionRecord
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+// MainViewModel.kt — updated to support referTo, skip logic, submit, and refresh
 class MainViewModel(private val db: AppDatabase) : ViewModel() {
 
     private val _questions = MutableStateFlow<List<QuestionRecord>>(emptyList())
@@ -20,13 +21,14 @@ class MainViewModel(private val db: AppDatabase) : ViewModel() {
     private val _currentQuestionIndex = MutableStateFlow(0)
     val currentQuestionIndex: StateFlow<Int> = _currentQuestionIndex
 
+    private val _submitted = MutableStateFlow(false)
+    val submitted: StateFlow<Boolean> = _submitted
 
-    // Called when the ViewModel is initialized — loads all questions from API
     init {
         fetchAll()
     }
 
-    // ✅ Fetch questions from the API and initialize the first question
+    // Step 1: Fetch all questions from API
     fun fetchAll() = viewModelScope.launch {
         val response = RetrofitClient.apiService.getQuestions()
         if (response.isSuccessful) {
@@ -34,47 +36,46 @@ class MainViewModel(private val db: AppDatabase) : ViewModel() {
             _questions.value = list
             _currentQuestion.value = list.firstOrNull()
             _currentQuestionIndex.value = 0
+            _submitted.value = false
         }
     }
 
-    // ✅ Save answer and move to the next question
+    // Step 2: Answer current question and navigate using referTo
     fun answered(answer: String) = viewModelScope.launch {
         _currentQuestion.value?.let { currentQ ->
             db.answerDao().insert(QuestionAnswer(questionId = currentQ.id, answer = answer))
 
             val nextId = currentQ.referTo?.id
-            if (nextId == null || nextId == "submit") {
+            if (nextId == "submit") {
                 _currentQuestion.value = null
                 _currentQuestionIndex.value = -1
+                _submitted.value = true
             } else {
-                val nextQuestion = _questions.value.find { it.id == nextId }
-                _currentQuestion.value = nextQuestion
-                _currentQuestionIndex.value = _questions.value.indexOf(nextQuestion)
+                val nextQ = _questions.value.find { it.id == nextId }
+                _currentQuestion.value = nextQ
+                _currentQuestionIndex.value = _questions.value.indexOf(nextQ)
             }
         }
     }
 
-
-    // ✅ Skip the current question
+    // Step 3 & 4: Skip to next question using skip ID
     fun skip() = viewModelScope.launch {
         _currentQuestion.value?.let { currentQ ->
             val skipId = currentQ.skip?.id
-
-            if (skipId != null) {
-                val skipQuestion = _questions.value.find { it.id == skipId }
-                if (skipQuestion != null) {
-                    _currentQuestion.value = skipQuestion
-                    _currentQuestionIndex.value = _questions.value.indexOf(skipQuestion)
+            if (skipId != null && skipId != "-1") {
+                val skipQ = _questions.value.find { it.id == skipId }
+                if (skipQ != null) {
+                    _currentQuestion.value = skipQ
+                    _currentQuestionIndex.value = _questions.value.indexOf(skipQ)
                     return@launch
                 }
             }
 
-            //  skip
-            val currentIndex = _questions.value.indexOf(currentQ)
-            val nextIndex = currentIndex + 1
-            if (nextIndex in _questions.value.indices) {
-                _currentQuestion.value = _questions.value[nextIndex]
-                _currentQuestionIndex.value = nextIndex
+            val i = _questions.value.indexOf(currentQ)
+            val next = i + 1
+            if (next in _questions.value.indices) {
+                _currentQuestion.value = _questions.value[next]
+                _currentQuestionIndex.value = next
             } else {
                 _currentQuestion.value = null
                 _currentQuestionIndex.value = -1
@@ -82,21 +83,25 @@ class MainViewModel(private val db: AppDatabase) : ViewModel() {
         }
     }
 
-    // ✅ Retrieve all saved answers and pass them to a callback (used in ResultsScreen)
+    // Step 5: Get all answers
     fun getAllAnswers(callback: (List<QuestionAnswer>) -> Unit) = viewModelScope.launch {
         callback(db.answerDao().getAll())
     }
 
-    // ✅ Restart the survey — clear answers and reset to the first question
+    // Step 6: Restart survey
     fun restartSurvey() = viewModelScope.launch {
         db.answerDao().clear()
         val first = _questions.value.firstOrNull()
         _currentQuestion.value = first
         _currentQuestionIndex.value = if (first != null) 0 else -1
+        _submitted.value = false
     }
 
-    // ✅ Get question text by ID (used to display in results)
+    // Utility: Get question text by ID
     fun getQuestionTextById(id: String): String {
         return _questions.value.find { it.id == id }?.question?.slug ?: "Unknown Question"
     }
-}
+
+    // Utility: Check if submitted (for navigation)
+    fun isSubmitted(): Boolean = submitted.value
+} // END
