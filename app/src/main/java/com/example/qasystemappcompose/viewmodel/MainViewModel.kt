@@ -17,52 +17,85 @@ class MainViewModel(private val db: AppDatabase) : ViewModel() {
     private val _currentQuestion = MutableStateFlow<QuestionRecord?>(null)
     val currentQuestion: StateFlow<QuestionRecord?> = _currentQuestion
 
+    private val _currentQuestionIndex = MutableStateFlow(0)
+    val currentQuestionIndex: StateFlow<Int> = _currentQuestionIndex
+
+
+    // Called when the ViewModel is initialized — loads all questions from API
     init {
         fetchAll()
     }
 
-    // ✅ fetch JSON from API
+    // ✅ Fetch questions from the API and initialize the first question
     fun fetchAll() = viewModelScope.launch {
         val response = RetrofitClient.apiService.getQuestions()
         if (response.isSuccessful) {
-            _questions.value = response.body()?.record.orEmpty()
-            _currentQuestion.value = _questions.value.firstOrNull()
+            val list = response.body()?.record.orEmpty()
+            _questions.value = list
+            _currentQuestion.value = list.firstOrNull()
+            _currentQuestionIndex.value = 0
         }
     }
 
-    // ✅ Answer current question and navigate next
+    // ✅ Save answer and move to the next question
     fun answered(answer: String) = viewModelScope.launch {
-        _currentQuestion.value?.let { q ->
-            db.answerDao().insert(QuestionAnswer(questionId = q.id, answer = answer))
-            q.referTo?.id?.let { navigateTo(it) }
+        _currentQuestion.value?.let { currentQ ->
+            db.answerDao().insert(QuestionAnswer(questionId = currentQ.id, answer = answer))
+
+            val nextId = currentQ.referTo?.id
+            if (nextId == null || nextId == "submit") {
+                _currentQuestion.value = null
+                _currentQuestionIndex.value = -1
+            } else {
+                val nextQuestion = _questions.value.find { it.id == nextId }
+                _currentQuestion.value = nextQuestion
+                _currentQuestionIndex.value = _questions.value.indexOf(nextQuestion)
+            }
         }
     }
 
-    // ✅ Skip current question
+
+    // ✅ Skip the current question
     fun skip() = viewModelScope.launch {
-        _currentQuestion.value?.skip?.id?.let { id ->
-            navigateTo(id)
+        _currentQuestion.value?.let { currentQ ->
+            val skipId = currentQ.skip?.id
+
+            if (skipId != null) {
+                val skipQuestion = _questions.value.find { it.id == skipId }
+                if (skipQuestion != null) {
+                    _currentQuestion.value = skipQuestion
+                    _currentQuestionIndex.value = _questions.value.indexOf(skipQuestion)
+                    return@launch
+                }
+            }
+
+            //  skip
+            val currentIndex = _questions.value.indexOf(currentQ)
+            val nextIndex = currentIndex + 1
+            if (nextIndex in _questions.value.indices) {
+                _currentQuestion.value = _questions.value[nextIndex]
+                _currentQuestionIndex.value = nextIndex
+            } else {
+                _currentQuestion.value = null
+                _currentQuestionIndex.value = -1
+            }
         }
     }
 
-    // ✅ Navigate to next question or submit screen
-    private fun navigateTo(id: String) {
-        _currentQuestion.value = if (id == "submit") null
-        else _questions.value.find { it.id == id }
-    }
-
-    // ✅ Get all saved answers from Room
+    // ✅ Retrieve all saved answers and pass them to a callback (used in ResultsScreen)
     fun getAllAnswers(callback: (List<QuestionAnswer>) -> Unit) = viewModelScope.launch {
         callback(db.answerDao().getAll())
     }
 
-    // ✅ Restart survey: clear old answers and reset first question
+    // ✅ Restart the survey — clear answers and reset to the first question
     fun restartSurvey() = viewModelScope.launch {
         db.answerDao().clear()
-        _currentQuestion.value = _questions.value.firstOrNull()
+        val first = _questions.value.firstOrNull()
+        _currentQuestion.value = first
+        _currentQuestionIndex.value = if (first != null) 0 else -1
     }
 
-    // ✅ Get Question Text by ID (for ResultScreen)
+    // ✅ Get question text by ID (used to display in results)
     fun getQuestionTextById(id: String): String {
         return _questions.value.find { it.id == id }?.question?.slug ?: "Unknown Question"
     }

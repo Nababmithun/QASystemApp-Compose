@@ -13,8 +13,9 @@ import androidx.compose.ui.Modifier
 @Composable
 fun ResultsScreen(
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onRestart: () -> Unit
 ) {
+    // Room to Answers load UI show
     var answers by remember { mutableStateOf<List<QuestionAnswer>>(emptyList()) }
 
     LaunchedEffect(Unit) {
@@ -54,10 +55,14 @@ fun ResultsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = onBack,
+            onClick = {
+                // Restart btn survey start
+                viewModel.restartSurvey()
+                onRestart()
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Restart Survey")
+            Text("🔁 Restart Survey")
         }
     }
 }

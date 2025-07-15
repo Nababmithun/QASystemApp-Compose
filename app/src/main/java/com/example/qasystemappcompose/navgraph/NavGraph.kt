@@ -9,17 +9,28 @@ import com.example.qasystemappcompose.viewmodel.MainViewModel
 @Composable
 fun NavGraph(vm: MainViewModel, onSubmitDone: () -> Unit) {
     val nav = rememberNavController()
-    NavHost(nav, startDestination = "survey") {
+
+    NavHost(navController = nav, startDestination = "survey") {
         composable("survey") {
-            MainScreen(viewModel = vm, onCompleted = {
-                nav.navigate("results")
-            })
+            MainScreen(
+                viewModel = vm,
+                onCompleted = {
+                    nav.navigate("results")
+                }
+            )
         }
+
         composable("results") {
-            ResultsScreen(viewModel = vm, onBack = {
-                nav.popBackStack("survey", inclusive = true)
-                vm.restartSurvey()  // ✅ পুরোনো উত্তর মুছে নতুন করে শুরু
-            })
+            ResultsScreen(
+                viewModel = vm,
+                onRestart = {
+                    vm.restartSurvey()
+                    nav.navigate("survey") {
+                        popUpTo(0) { inclusive = true } // ⛔️ Clear full backstack
+                        launchSingleTop = true           // 🧼 Avoid duplicate
+                    }
+                }
+            )
         }
     }
 }

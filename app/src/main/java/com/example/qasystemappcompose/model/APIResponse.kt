@@ -10,7 +10,7 @@ data class QuestionRecord(
     val id: String,
     val skip: Skip?,
     val type: String,
-    val options: List<Option>?,  // Nullable: কিছুতে null আছে
+    val options: List<Option>?,  // Nullable
     val referTo: ReferTo? = null,
     val question: Question,
     val validations: Validations? = null

@@ -1,44 +1,91 @@
 package com.example.qasystemappcompose.screen
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.qasystemappcompose.viewmodel.MainViewModel
 
-
 @Composable
-fun MainScreen(viewModel: MainViewModel, onCompleted: () -> Unit) {
+fun MainScreen(
+    viewModel: MainViewModel,
+    onCompleted: () -> Unit
+) {
     val currentQuestion by viewModel.currentQuestion.collectAsState()
+    val questionIndex by viewModel.currentQuestionIndex.collectAsState()
 
     currentQuestion?.let { question ->
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = question.question.slug, fontSize = 20.sp)
+        key(questionIndex) {
+            var selectedOption by remember(questionIndex) { mutableStateOf<String?>(null) }
 
-            question.options?.forEach { option ->
-                Button(
-                    onClick = { viewModel.answered(option.value) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                    Text(option.value)
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = question.question.slug, fontSize = 20.sp)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                question.options?.forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { selectedOption = option.value }
+                            .background(
+                                if (selectedOption == option.value)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                else
+                                    MaterialTheme.colorScheme.surface
+                            )
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedOption == option.value,
+                            onClick = { selectedOption = option.value },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = option.value)
+                    }
                 }
-            }
 
-            Button(
-                onClick = { viewModel.skip() },
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                Text("Skip")
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = { viewModel.skip() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Skip")
+                    }
+
+                    Button(
+                        onClick = {
+                            selectedOption?.let {
+                                viewModel.answered(it)
+                            }
+                        },
+                        enabled = selectedOption != null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Next")
+                    }
+                }
             }
         }
     } ?: run {
-        // ✅ Navigate to result screen
         LaunchedEffect(Unit) {
             onCompleted()
         }
